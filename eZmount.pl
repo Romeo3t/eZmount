@@ -22,10 +22,10 @@ my $directory = "~/eZmount";
 
 
 my $banner = <<'DONE';
-       _____                            _
-   ___|__  /_ __ ___   ___  _   _ _ __ | |_
+       _____                            _   
+   ___|__  /_ __ ___   ___  _   _ _ __ | |_ 
   / _ \ / /| '_ ` _ \ / _ \| | | | '_ \| __|
- |  __// /_| | | | | | (_) | |_| | | | | |_
+ |  __// /_| | | | | | (_) | |_| | | | | |_ 
   \___/____|_| |_| |_|\___/ \__,_|_| |_|\__|
 
 DONE
@@ -56,7 +56,7 @@ sub changeDirectory
     my $temp_directory = "";
     $temp_directory = <STDIN>;
     chomp $temp_directory;
-    $temp_directory = `readlink -f '$temp_directory' >/dev/null 2>/dev/null`;
+    $temp_directory = `readlink -f '$temp_directory' 2>/dev/null`;
     chomp $temp_directory;
     if ( system("stat '$temp_directory' >/dev/null 2>/dev/null") )
     {
@@ -69,12 +69,12 @@ sub changeDirectory
         }
         else {return;}
     }
-
+    
     if ( !system("grep '\#.eZdir' '$UUID_path' >/dev/null 2>/dev/null") )
     {
         system( "sed -e 's/\#.eZdir\t/\#.eZdir\t$temp_directory/' $UUID_path" );
     }
-    else
+    else 
     {
         !system( "echo -e '\#.eZdir\t$temp_directory' >> '$UUID_path'") or die ("Failed to write to $UUID_path");
     }
@@ -212,7 +212,6 @@ sub mountSingle {
     else
     {
         warn "Invalid choice. The device may either already be mounted or you specified an invalid volume.\n";
-
     }
 }
 
@@ -397,3 +396,5 @@ warn  color("red"), "\n";
 warn "This program was designed to be run with root access. All bets are off.\n" if ( '0' ne $id ) ;
 
 main(shift);
+
+
