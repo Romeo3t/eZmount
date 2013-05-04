@@ -58,21 +58,29 @@ sub changeDirectory
     chomp $temp_directory;
     $temp_directory = `readlink -f '$temp_directory' 2>/dev/null`;
     chomp $temp_directory;
+    if ($temp_directory eq "")
+    {
+        warn "Could not create directory. Try entering a more existent path\n";
+        return;
+    }
     if ( system("stat '$temp_directory' >/dev/null 2>/dev/null") )
     {
-        print "'$temp_directory' does not exist.\nAttempt to create it and required parent directories? [y/N] : ";
+        print "'$temp_directory' does not exist.\nAttempt to create it? [y/N] : ";
         my $choice = "";
         $choice = <STDIN>;
+        chomp $choice;
         if ( "yes" =~ /$choice/i )
         {
-            !system( "mkdir -p '$temp_directory' 2>/dev/null >/dev/null" ) or warn "Failed to create $temp_directory\n" and return;
+            !system( "mkdir '$temp_directory' 2>/dev/null >/dev/null" ) or warn "Failed to create $temp_directory\n" and return;
         }
         else {return;}
     }
     
     if ( !system("grep '\#.eZdir' '$UUID_path' >/dev/null 2>/dev/null") )
     {
-        system( "sed -e 's/\#.eZdir\t/\#.eZdir\t$temp_directory/' $UUID_path" );
+        my $super_temp = $temp_directory;
+        $super_temp =~ s/\//\\\//g; 
+        system( "sed -ie 's/#.eZdir\\s.*/#.eZdir\\t$super_temp/' $UUID_path > $UUID_path" );
     }
     else 
     {
@@ -99,6 +107,10 @@ sub isLooped
 sub cleanLoop
 {
     my $device = shift;
+    foreach (@mapped_partitions)
+    {
+        system("kpartx -d $_ >/dev/null 2>/dev/null");
+    }
     if ( system("kpartx -d \"$device\"") )
     {
         warn "A mapped partition of $device appears to be in use. Make sure the mapped partitions are unmounted and try again.\n";
@@ -384,6 +396,11 @@ sub main {
         elsif ("directory" =~ /^$input/){
             changeDirectory();
         }
+        elsif ("clean" =~ /^$input/){
+            my $device_path = "";
+            $device_path = <STDIN>;
+            chomp $device_path;
+            cleanLoop($device_path);}
         else{
             print "Not a valid command, please try again";
         }
