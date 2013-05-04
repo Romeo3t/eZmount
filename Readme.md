@@ -92,3 +92,6 @@ When we started this project it was more than just a forensics class final. We a
 
 
 References
+
+The Perl documentation, some portions of the Linux kernel's source code, and the man pages for scalpel after an attempt to remove /~/~ recursively failed catastrophically.
+
