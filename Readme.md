@@ -1,8 +1,8 @@
-       _____                            _   
-   ___|__  /_ __ ___   ___  _   _ _ __ | |_ 
-  / _ \ / /| '_ ` _ \ / _ \| | | | '_ \| __|
- |  __// /_| | | | | | (_) | |_| | | | | |_ 
-  \___/____|_| |_| |_|\___/ \__,_|_| |_|\__|
+           _____                            _ 
+       ___|__  /_ __ ___   ___  _   _ _ __ | |_ 
+      / _ \ / /| '_ ` _ \ / _ \| | | | '_ \| __|
+     |  __// /_| | | | | | (_) | |_| | | | | |_ 
+      \___/____|_| |_| |_|\___/ \__,_|_| |_|\__|
                                             
                                                                                                                                             
 ##by Josh McSavaney, Clint Edwards, and Christopher Vuotto
@@ -49,11 +49,11 @@ Feature: Make user breakfast – Is going to require more of an investment($5,00
 
 We used many tools to accomplish the greatness that is eZmount
 
-kpartx - http://linux.die.net/man/8/kpartx 
-mount - http://linux.die.net/man/8/mount 
-umount - http://linux.die.net/man/8/umount 
-parted - http://linux.die.net/man/8/parted 
-losetup - http://linux.die.net/man/8/losetup 
+* kpartx - http://linux.die.net/man/8/kpartx 
+* mount - http://linux.die.net/man/8/mount 
+* umount - http://linux.die.net/man/8/umount 
+* parted - http://linux.die.net/man/8/parted 
+* losetup - http://linux.die.net/man/8/losetup 
 
 
 
