@@ -37,7 +37,8 @@ Ezmount is in full working condition, although it will need a further array of t
 
 Usability: The program needs to be run with root access. 
 
-Feature: Forensics mode off/on – Is a feature we are thinking about for the future. 
+Feature: Forensics mode off/on – Is a feature we are thinking about for the future.
+
 Feature: Make user breakfast – Is going to require more of an investment($5,000) than we initially put 			in ($0)
 
 
