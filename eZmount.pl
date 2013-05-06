@@ -75,7 +75,7 @@ sub changeDirectory
         }
         else {return;}
     }
-    
+
     if ( !system("grep '\#.eZdir' '$UUID_path' >/dev/null 2>/dev/null") )
     {
         my $super_temp = $temp_directory;
@@ -190,21 +190,21 @@ sub printHelp {
 
 sub printMountOptions{
     print ("\n");
-    print ("h --help\n");
-    print ("l --list\n");
-    print ("s --mount single volume\n");
-    print ("a --mount all volumes\n");
-    print ("q --quit\n");
+    print ("h   -- help\n");
+    print ("l   -- list\n");
+    print ("s   -- mount single volume\n");
+    print ("a   -- mount all volumes\n");
+    print ("q   -- quit\n");
     print ("\n");
 }
 
 sub printUnmountOptions{
     print ("\n");
-    print ("h --help\n");
-    print ("l --list\n");
-    print ("s --unmount single volume\n");
-    print ("a --unmount all volumes\n");
-    print ("q --quit\n");
+    print ("h   -- help\n");
+    print ("l   -- list\n");
+    print ("s   -- unmount single volume\n");
+    print ("a   -- unmount all volumes\n");
+    print ("q   -- quit\n");
     print ("\n");
 }
 
