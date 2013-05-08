@@ -17,7 +17,7 @@ my $UUID_path = "";
 my $loop_dev = "^NOMATCH";
 #my @input = ();
 my $input = "";
-my $directory = "~/eZmount";
+my $directory = "/eZmount";
 ####################
 
 
@@ -30,6 +30,15 @@ my $banner = <<'DONE';
 
 DONE
 #The above is how a multi-line string can be easily created.
+
+sub trim($)
+{
+	my $string = shift;
+	$string =~ s/^\s+//;
+	$string =~ s/\s+$//;
+	return $string;
+}
+
 
 sub listVolumes
 {
@@ -56,23 +65,31 @@ sub changeDirectory
     my $temp_directory = "";
     $temp_directory = <STDIN>;
     chomp $temp_directory;
-    $temp_directory = `readlink -f '$temp_directory' >/dev/null 2>/dev/null`;
+    $temp_directory = `readlink -f '$temp_directory' 2>/dev/null`;
     chomp $temp_directory;
+    if ($temp_directory eq "")
+    {
+        warn "Could not create directory. Try entering a more existent path\n";
+        return;
+    }
     if ( system("stat '$temp_directory' >/dev/null 2>/dev/null") )
     {
-        print "'$temp_directory' does not exist.\nAttempt to create it and required parent directories? [y/N] : ";
+        print "'$temp_directory' does not exist.\nAttempt to create it? [y/N] : ";
         my $choice = "";
         $choice = <STDIN>;
+        chomp $choice;
         if ( "yes" =~ /$choice/i )
         {
-            !system( "mkdir -p '$temp_directory' 2>/dev/null >/dev/null" ) or warn "Failed to create $temp_directory\n" and return;
+            !system( "mkdir '$temp_directory' 2>/dev/null >/dev/null" ) or warn "Failed to create $temp_directory\n" and return;
         }
         else {return;}
     }
 
     if ( !system("grep '\#.eZdir' '$UUID_path' >/dev/null 2>/dev/null") )
     {
-        system( "sed -e 's/\#.eZdir\t/\#.eZdir\t$temp_directory/' $UUID_path" );
+        my $super_temp = $temp_directory;
+        $super_temp =~ s/\//\\\//g;
+        system( "sed -ie 's/#.eZdir\\s.*/#.eZdir\\t$super_temp/' $UUID_path > $UUID_path" );
     }
     else
     {
@@ -99,6 +116,10 @@ sub isLooped
 sub cleanLoop
 {
     my $device = shift;
+    foreach (@mapped_partitions)
+    {
+        system("kpartx -d $_ >/dev/null 2>/dev/null");
+    }
     if ( system("kpartx -d \"$device\"") )
     {
         warn "A mapped partition of $device appears to be in use. Make sure the mapped partitions are unmounted and try again.\n";
@@ -147,7 +168,7 @@ sub init
     system("kpartx -a \"$loop_dev\" 2>/dev/null");
     #it is faster to call kpartx and have it do nothing than to check ahead of time
     my $temp_dir = $directory;
-    $directory = `grep '^\#.eZdir\\s' '$UUID_path' | cut -f2 2>/dev/null`;
+  #  $directory = `grep '^\#.eZdir\\s' '$UUID_path' | cut -f2 2>/dev/null`;
     if ($directory eq ""){
         $directory = $temp_dir;
         !system("echo -e '\#.eZdir\t$directory' >>'$UUID_path' 2>/dev/null") or die "Couldn't write mount dir to $UUID_path";
@@ -172,27 +193,28 @@ sub printHelp {
     print ("dir     -- change mount directory\n");
     print ("mount   -- mount a partition from your image\n");
     print ("unmount -- unmount a mounted partition\n");
+    print ("clean   -- wipes system back to near-original state\n");
     print ("quit    -- exit eZmount\n");
     print ("\n");
 }
 
 sub printMountOptions{
     print ("\n");
-    print ("h --help\n");
-    print ("l --list\n");
-    print ("s --mount single volume\n");
-    print ("a --mount all volumes\n");
-    print ("q --quit\n");
+    print ("h   -- help\n");
+    print ("l   -- list\n");
+    print ("s   -- mount single volume\n");
+    print ("a   -- mount all volumes\n");
+    print ("q   -- quit\n");
     print ("\n");
 }
 
 sub printUnmountOptions{
     print ("\n");
-    print ("h --help\n");
-    print ("l --list\n");
-    print ("s --unmount single volume\n");
-    print ("a --unmount all volumes\n");
-    print ("q --quit\n");
+    print ("h   -- help\n");
+    print ("l   -- list\n");
+    print ("s   -- unmount single volume\n");
+    print ("a   -- unmount all volumes\n");
+    print ("q   -- quit\n");
     print ("\n");
 }
 
@@ -201,9 +223,11 @@ sub mountSingle {
     print "Available volumes:\n";
     listVolumes(1);
     print "Volume number: ";
+
     my $choice = <STDIN>;
     chomp $choice;
-    if ($choice =~ /^[[:digit:]]+$/ and $choice < ($#mapped_partitions + 1) and !isMounted($mapped_partitions[$choice-1]))
+    $choice = trim($choice);
+    if ($choice =~ /^[[:digit:]]+$/ and $choice < ($#mapped_partitions + 2) and !isMounted($mapped_partitions[$choice-1]))
     {
         system("mkdir -p '$directory/$UUID/$choice' >/dev/null 2>/dev/null");
         system("mount -o ro,noexec '$mapped_partitions[$choice-1]' '$directory/$UUID/$choice' >/dev/null 2>/dev/null");
@@ -212,7 +236,6 @@ sub mountSingle {
     else
     {
         warn "Invalid choice. The device may either already be mounted or you specified an invalid volume.\n";
-
     }
 }
 
@@ -220,54 +243,62 @@ sub mountAll {
 
     print "\n";
     print "Are you sure you want to mount all volumes? [y/n]";
-    my $i = <STDIN>;
-    chomp $i;
+    my $choice = <STDIN>;
+    chomp $choice;	
+    my $incre = 1;
 
-    if ("yes" =~ /^$i/i){
-        print "\n";
-        print "This should iterate through all the mount points and run the mount command on them.";
+    if ("yes" =~ /^$choice/){
+    foreach (@mapped_partitions)
+        {
+        system("mkdir -p '$directory/$UUID/$incre' >/dev/null 2>/dev/null");
+        system("mount -o ro,noexec '$_' '$directory/$UUID/$incre' >/dev/null 2>/dev/null");
+	$incre++;
+        }
+        print "If it could be mounted, it was mounted.\n";
     }
     else{
-         print "\n";
+        print "\n";
         print "Returning to mount menu";
     }
 }
 
 sub unmountSingle {
+    print "\n";
+    print "Available volumes:\n";
+    listVolumes(1);
+
 
     print "\n";
     print "Which volume would you like to unmount? ";
-    my $i = <STDIN>;
-    chomp $i;
-    #print the list of volumes it is possible to unmount here.
-    #like so:
-    # 1 - /mnt
-    # 2 - /blah
-    # 3 - /blah3
+    my $choice = <STDIN>;
+    chomp $choice;
+    $choice = trim($choice);
+    if ($choice =~ /^[[:digit:]]+$/ and $choice < ($#mapped_partitions + 2) and isMounted($mapped_partitions[$choice-1]))
+    {
+	system("umount '$mapped_partitions[$choice-1]' >/dev/null 2>/dev/null");
+        system("rm -drf '$directory/$UUID/$choice' >/dev/null 2>/dev/null");
 
-    if($i =~ /^[[:digit:]]+$/){
-    #print("umount " . $mapped_partitions[$i-1]); #test print statement
-    system("umount " . $mapped_partitions[$i-1]) and die "Failed to unmount volume";
-    #System calls return a 0 on success, which evaluates to False
-
-    print "Successfully unmounted";
+        print "\n Volume unmounted and directory deleted properly \n";
+    
+    #print "Successfully unmounted";
     #Make sure we delete the directory that it was mount to afterwards.
     }else{
-        print "Returning to unmount menu";
+         warn "Invalid choice. The device may either already be unmounted or you specified an invalid volume.\n";
     }
 }
 
 sub unmountAll {
     print "\n";
     print "Are you sure you want to unmount all volumes? [y/n]";
-    my $i = <>;
-    chomp $i;
+    my $choice = <>;
+    chomp $choice;
 
-    if ("yes" =~ /^$i/){
+    if ("yes" =~ /^$choice/){
         foreach (@mapped_partitions)
         {
             system("umount $_ >/dev/null 2>/dev/null");
         }
+	system("rm -drf '$directory/' >/dev/null 2>/dev/null");
         print "If it could be unmounted, it was unmounted.\n";
     }
     else{
@@ -288,6 +319,8 @@ sub unmountMenu {
        print "unmount command : ";
        $unmountinput = <STDIN>;
        chomp $unmountinput;
+  	$unmountinput = trim($unmountinput);
+
 
        if ("single" =~ /^$unmountinput/){
            unmountSingle();
@@ -300,6 +333,9 @@ sub unmountMenu {
        elsif ("list" =~ /^$unmountinput/){
            listVolumes();
        }
+	elsif ("ls" =~ /^$input/){
+            listVolumes();
+        }
        elsif ("help" =~ /^$unmountinput/){
            printUnmountOptions();
        }
@@ -324,6 +360,7 @@ sub mountMenu {
 
         $mountinput = <STDIN>;
         chomp $mountinput;
+	$mountinput = trim($mountinput);
 
         if ("single" =~ /^$mountinput/){
             mountSingle();
@@ -336,6 +373,9 @@ sub mountMenu {
         elsif ("list" =~ /^$mountinput/){
             listVolumes();
         }
+	elsif ("ls" =~ /^$input/){
+            listVolumes();
+        }
         elsif ("help" =~ /^$mountinput/){
             printMountOptions();
         }
@@ -345,6 +385,19 @@ sub mountMenu {
             print "Not a valid command, please try again";
         }
     }
+}
+
+sub cleanDir(){
+ foreach (@mapped_partitions)
+   	{
+            system("umount $_ >/dev/null 2>/dev/null");
+        }
+	system("rm -drf '$directory/' >/dev/null 2>/dev/null");
+        print "If it could be unmounted, it was unmounted.\n";
+ 
+        print "\n";
+        print "Cleaning complete";
+   
 }
 
 sub main {
@@ -366,11 +419,15 @@ sub main {
         #@input = split( /\s/ <STDIN>;
         $input = <STDIN>;
         chomp $input;
+	$input = trim($input);
 
         if ("mount" =~ /^$input/){
             mountMenu();
         }
         elsif ("list" =~ /^$input/){
+            listVolumes();
+        }
+   	elsif ("ls" =~ /^$input/){
             listVolumes();
         }
         elsif ("unmount" =~ /^$input/){
@@ -385,6 +442,13 @@ sub main {
         elsif ("directory" =~ /^$input/){
             changeDirectory();
         }
+        elsif ("clean" =~ /^$input/){
+            my $device_path = "";
+            $device_path = <STDIN>;
+            chomp $device_path;
+            cleanLoop($device_path);
+	    cleanDir();
+	    }
         else{
             print "Not a valid command, please try again";
         }
@@ -397,3 +461,5 @@ warn  color("red"), "\n";
 warn "This program was designed to be run with root access. All bets are off.\n" if ( '0' ne $id ) ;
 
 main(shift);
+
+
