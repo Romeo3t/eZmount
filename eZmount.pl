@@ -29,8 +29,9 @@ my $banner = <<'DONE';
   \___/____|_| |_| |_|\___/ \__,_|_| |_|\__|
 
 DONE
-#The above is how a multi-line string can be easily created.
+#Startup banner
 
+#Trim function for strings
 sub trim($)
 {
 	my $string = shift;
@@ -39,7 +40,7 @@ sub trim($)
 	return $string;
 }
 
-
+#Prints out current list of volumes available to be mounted.
 sub listVolumes
 {
     if (! shift )
@@ -59,6 +60,8 @@ sub listVolumes
     }
 }
 
+
+#Changes mount directory for eZmount
 sub changeDirectory
 {
     print "Where would you like for your volumes to be mounted?\ndirectory : ";
@@ -98,11 +101,13 @@ sub changeDirectory
     $directory = $temp_directory;
 }
 
+#checks to see if a given volume is mounted
 sub isMounted
 {
     my $device = shift;
     return !system("grep \"$device\" /etc/mtab >/dev/null 2>/dev/null");
 }
+
 
 sub isLooped
 {
@@ -112,6 +117,8 @@ sub isLooped
     my $device = shift;
     !system("losetup -a | grep \"$device\" >/dev/null 2>/dev/null");
 }
+
+
 
 sub cleanLoop
 {
@@ -218,17 +225,22 @@ sub printUnmountOptions{
     print ("\n");
 }
 
+#Mount a single volume
 sub mountSingle {
 
+    #List volumes so user knows what is available
     print "Available volumes:\n";
     listVolumes(1);
     print "Volume number: ";
 
+    #Record users input, trim it, and use it to determine which partitions need to be mounted.
     my $choice = <STDIN>;
     chomp $choice;
     $choice = trim($choice);
     if ($choice =~ /^[[:digit:]]+$/ and $choice < ($#mapped_partitions + 2) and !isMounted($mapped_partitions[$choice-1]))
     {
+        #Create temporary mounting directory, mount volume with read only permissions passing
+        # any errors to dev/null.
         system("mkdir -p '$directory/$UUID/$choice' >/dev/null 2>/dev/null");
         system("mount -o ro,noexec '$mapped_partitions[$choice-1]' '$directory/$UUID/$choice' >/dev/null 2>/dev/null");
         print "Volume mounted properly at $directory/$UUID/$choice\n";
@@ -239,12 +251,15 @@ sub mountSingle {
     }
 }
 
+#Mount all available volumes.
 sub mountAll {
 
+    #Confirm that user wants to mount all voumes then,
+    # iterate through all available volumes and run read only mount on them.
     print "\n";
     print "Are you sure you want to mount all volumes? [y/n]";
     my $choice = <STDIN>;
-    chomp $choice;	
+    chomp $choice;
     my $incre = 1;
 
     if ("yes" =~ /^$choice/){
@@ -262,12 +277,15 @@ sub mountAll {
     }
 }
 
+#Unmount a single volume
 sub unmountSingle {
+
+    #List volumes so user knows what is available
     print "\n";
     print "Available volumes:\n";
     listVolumes(1);
 
-
+    #Take users input, make sure its a digit, check if its mounted, then unmount it.
     print "\n";
     print "Which volume would you like to unmount? ";
     my $choice = <STDIN>;
@@ -279,20 +297,23 @@ sub unmountSingle {
         system("rm -drf '$directory/$UUID/$choice' >/dev/null 2>/dev/null");
 
         print "\n Volume unmounted and directory deleted properly \n";
-    
-    #print "Successfully unmounted";
-    #Make sure we delete the directory that it was mount to afterwards.
+
+
     }else{
          warn "Invalid choice. The device may either already be unmounted or you specified an invalid volume.\n";
     }
 }
 
+#Unmount all mounted volumes
 sub unmountAll {
     print "\n";
     print "Are you sure you want to unmount all volumes? [y/n]";
     my $choice = <>;
     chomp $choice;
 
+
+    #Iterate through mounted partition array, unmount all.
+    # Then remove temporary directories used to mount, passing all errors to null.
     if ("yes" =~ /^$choice/){
         foreach (@mapped_partitions)
         {
@@ -331,9 +352,9 @@ sub unmountMenu {
            $unmountloopend = 1;
        }
        elsif ("list" =~ /^$unmountinput/){
-           listVolumes();
+            listVolumes();
        }
-	elsif ("ls" =~ /^$input/){
+       elsif ("ls" =~ /^$input/){
             listVolumes();
         }
        elsif ("help" =~ /^$unmountinput/){
@@ -360,7 +381,7 @@ sub mountMenu {
 
         $mountinput = <STDIN>;
         chomp $mountinput;
-	$mountinput = trim($mountinput);
+        $mountinput = trim($mountinput);
 
         if ("single" =~ /^$mountinput/){
             mountSingle();
@@ -373,7 +394,7 @@ sub mountMenu {
         elsif ("list" =~ /^$mountinput/){
             listVolumes();
         }
-	elsif ("ls" =~ /^$input/){
+        elsif ("ls" =~ /^$input/){
             listVolumes();
         }
         elsif ("help" =~ /^$mountinput/){
@@ -394,24 +415,28 @@ sub cleanDir(){
         }
 	system("rm -drf '$directory/' >/dev/null 2>/dev/null");
         print "If it could be unmounted, it was unmounted.\n";
- 
+
         print "\n";
         print "Cleaning complete";
-   
+
 }
 
 sub main {
 
     my $loopend = 0;
 
+    #Print banner and welcome messages
     print color('green'), $banner, color('reset');
     welcome();
+
+
     $_ = shift;
     die "Usage: eZmount disk_image\n" if !$_;
     init($_);
     #@input = @_;
     printHelp();
 
+    #Main while statement for UI
     while($loopend != 1){
         print "\n";
         print "command : ";
@@ -419,7 +444,7 @@ sub main {
         #@input = split( /\s/ <STDIN>;
         $input = <STDIN>;
         chomp $input;
-	$input = trim($input);
+        $input = trim($input);
 
         if ("mount" =~ /^$input/){
             mountMenu();
@@ -427,7 +452,7 @@ sub main {
         elsif ("list" =~ /^$input/){
             listVolumes();
         }
-   	elsif ("ls" =~ /^$input/){
+        elsif ("ls" =~ /^$input/){
             listVolumes();
         }
         elsif ("unmount" =~ /^$input/){
@@ -447,7 +472,7 @@ sub main {
             $device_path = <STDIN>;
             chomp $device_path;
             cleanLoop($device_path);
-	    cleanDir();
+            cleanDir();
 	    }
         else{
             print "Not a valid command, please try again";
@@ -455,6 +480,7 @@ sub main {
     }
 }
 
+#if uid of current user is not root, print error message.
 my $id = `id -u`;
 chomp $id;
 warn  color("red"), "\n";
